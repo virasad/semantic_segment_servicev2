@@ -12,6 +12,7 @@ from utils import callbacks as cb
 from utils import dataset_utils as ds_utils, dataloaders, mobilenetv2_pre, metrics as mtr
 
 
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, optimizer, scheduler, model_name,
         model_dir, callbacks, patch=False):
     def write_callbacks(callbacks, metrics):
@@ -29,7 +30,7 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
     min_loss = np.inf
     decrease = 1
     not_improve = 0
-
+    best_metrics = {}
     model.to(device)
     fit_time = time.time()
     for e in range(epochs):
@@ -137,7 +138,9 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                         model, model_p)
                     metrics['state'] = 'best'
                     metrics['model_path'] = model_p
+                    print(model_dir, model_p)
                     write_callbacks(callbacks, metrics)
+                    best_metrics = metrics
 
             if (test_loss / len(val_loader)) > min_loss:
                 not_improve += 1
@@ -167,7 +170,7 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                'lrs': lrs}
 
     print('Total time: {:.2f} m'.format((time.time() - fit_time) / 60))
-    return history
+    return history, best_metrics
 
 
 def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch_size=5, epochs=100, response_url=None,
@@ -244,7 +247,7 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
     if not task_id:
         task_id = str(uuid.uuid4())
 
-    task_dir = os.path.join(os.path.dirname(__file__), 'runs', task_id)
+    task_dir = os.path.join(ROOT_DIR, 'runs', task_id)
     log_dir = os.path.join(task_dir, 'logs')
     model_dir = os.path.join(task_dir, 'models')
     os.makedirs(task_dir, exist_ok=True)
