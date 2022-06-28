@@ -8,15 +8,15 @@ import random
 def check_data(dataset_path, images_extention='jpg'):
     dataset = Dataset(dataset_path, images_extention)
 
-    # To Check if the dataset is complete(there is a mask for each image)
+    # To Check if the dataset2 is complete(there is a mask for each image)
     paths = dataset.check_valid_dataset()
     return paths
 
 
 def augment_data(input_images_path, mask_images_path, labelmap_path, count, images_extention='jpg', resize=False, width=0, height=0):
     """
-    Augmentation for each picture depending on the statistics of the objects existing in your dataset
-    Saves the augmented image in your dataset path with the following pattern aug_[num].jpg
+    Augmentation for each picture depending on the statistics of the objects existing in your dataset2
+    Saves the augmented image in your dataset2 path with the following pattern aug_[num].jpg
 
     Args:
         input_images_path: Images path
@@ -56,7 +56,7 @@ def mask_to_raw(input_images_path, mask_images_path, labelmap_path, images_exten
 def train_val_test_split(dataset_path, val_size=0.2, test_size=None, shuffle=False, images_extention='jpg'):
     '''
     Creates .txt files with names of images without their extentions, seprated in train/val/test
-    The .txt files are located at 'dataset/ImageSets/Segmentation'
+    The .txt files are located at 'dataset2/ImageSets/Segmentation'
     The files will be as following:
     train.txt -> Training images names
     val.txt -> Validation images names

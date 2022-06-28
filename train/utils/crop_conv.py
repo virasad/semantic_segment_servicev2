@@ -39,9 +39,9 @@ def crop_conv(image_name, mask_name, size, strides, dst_image_dir, dst_mask_dir)
 
 if __name__ == '__main__':
     from pathlib import Path
-    # data_dir = '/home/sfm3/Amir/semantic_segmentation_service/train/new_semantic_segmentation/dataset/data_dataset_voc/images'
-    # dst_dir = '/home/sfm3/Amir/semantic_segmentation_service/train/new_semantic_segmentation/dataset/data_dataset_voc/crop_image'
-    dataset_dir = '/home/sfm3/Amir/semantic_segmentation_service/train/new_semantic_segmentation/dataset/data_dataset_voc'
+    # data_dir = '/home/sfm3/Amir/semantic_segmentation_service/train/new_semantic_segmentation/dataset2/data_dataset_voc/images'
+    # dst_dir = '/home/sfm3/Amir/semantic_segmentation_service/train/new_semantic_segmentation/dataset2/data_dataset_voc/crop_image'
+    dataset_dir = '/home/sfm3/Amir/semantic_segmentation_service/train/new_semantic_segmentation/dataset2/data_dataset_voc'
     images_dir = os.path.join(dataset_dir, 'images')
     masks_dir = os.path.join(dataset_dir, 'masks')
     image_list = os.listdir(images_dir)

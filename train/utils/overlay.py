@@ -14,5 +14,6 @@ def main(image_path, mask_path, w, h):
     overlay = cv2.addWeighted(image, alpha, mask, 1 - alpha, 0, mask)
     cv2.imwrite('overlayed.png', overlay)
 
+
 if __name__ == '__main__':
     main()
