@@ -1,0 +1,15 @@
+albumentations
+segmentation-models-pytorch
+opencv-python
+preimutils
+numpy
+click
+tqdm
+pillow
+matplotlib
+sklearn
+scikit-learn
+torchvision
+uvicorn
+fastapi
+pydantic

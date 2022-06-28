@@ -3,21 +3,12 @@ import numpy as np
 import segmentation_models_pytorch as smp
 
 
-def create_model(encoder, encoder_weights, num_classes, activation):
-    """
-    Create a model with the specified encoder and weights.
-    :param encoder: the encoder name
-    :param encoder_weights: the encoder weights
-    :param num_classes: the number of classes you should consider background as well
-    :param activation: the activation function
-    :return: the model
-
-    """
+def create_model(encoder, encoder_weights, classes, activation):
 # create segmentation model with pretrained encoder
     model = smp.DeepLabV3Plus(
         encoder_name=encoder, 
         encoder_weights=encoder_weights, 
-        classes=num_classes,
+        classes=len(classes), 
         activation=activation,
         # aux_params={'dropout':0.5}
     )
