@@ -1,9 +1,9 @@
-import json
 import os
 
 from fastapi import FastAPI, BackgroundTasks
 
 import trainer as tr
+from utils.callbacks import RedisCallback
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 app = FastAPI(
@@ -42,7 +42,8 @@ async def train(
         log_url: str = None,
         task_id: str = None,
         data_type: str = 'coco',
-
+        redis_cb: bool = True,
+        file_cb: bool = False,
 ):
     background_tasks.add_task(
         tr.trainer, images_dir=images_dir,
@@ -63,5 +64,7 @@ async def train(
 
 @app.get("/get_status")
 async def get_status(task_id: int):
-    with open(os.path.join(ROOT_DIR, 'runs', str(task_id), 'logs', 'result.json')) as f:
-        return json.load(f)
+    # with open(os.path.join(ROOT_DIR, 'runs', str(task_id), 'logs', 'result.json')) as f:
+    #     return json.load(f)
+    response = RedisCallback(task_id).get()
+    return response

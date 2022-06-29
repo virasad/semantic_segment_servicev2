@@ -1,6 +1,8 @@
-import requests
 import json
 import os
+
+import redis
+import requests
 
 
 class BaseCallback:
@@ -28,3 +30,16 @@ class PostCallback(BaseCallback):
 
     def write(self, metrics):
         requests.post(self.url, json=metrics)
+
+
+class RedisCallback(BaseCallback):
+    def __init__(self, task_id, host='localhost', port=6379, db=0):
+        super().__init__()
+        self.rd = redis.Redis(host=host, port=port, db=db)
+        self.task_id = task_id
+
+    def write(self, metrics):
+        self.rd.set(self.task_id, json.dumps(metrics))
+
+    def get(self):
+        return json.loads(self.rd.get(self.task_id))
