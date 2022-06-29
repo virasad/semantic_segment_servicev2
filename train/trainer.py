@@ -11,8 +11,9 @@ from model import model as model_utils
 from utils import callbacks as cb
 from utils import dataset_utils as ds_utils, dataloaders, mobilenetv2_pre, metrics as mtr
 
-
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
 def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, optimizer, scheduler, model_name,
         model_dir, callbacks, patch=False):
     def write_callbacks(callbacks, metrics):
@@ -174,7 +175,7 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
 
 
 def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch_size=5, epochs=100, response_url=None,
-            log_url=None, model_name='', task_id=None, data_type='coco'):
+            log_url=None, model_name='', task_id=None, data_type='coco', redis_cb=True, file_cb=True,):
     """
     TODO: add description
     :param images_dir:
@@ -253,11 +254,17 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
     os.makedirs(task_dir, exist_ok=True)
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(model_dir, exist_ok=True)
-    file_cb = cb.FileCallback(log_dir)
-    cbs = [file_cb]
+    cbs = []
+    if file_cb:
+        file_cb = cb.FileCallback(log_dir)
+        cbs.append(file_cb)
     if response_url:
         response_cb = cb.PostCallback(log_url)
         cbs.append(response_cb)
+
+    if redis_cb:
+        redis_cb = cb.RedisCallback(task_id)
+        cbs.append(redis_cb)
 
     history = fit(device=DEVICE,
                   n_classes=n_classes,
