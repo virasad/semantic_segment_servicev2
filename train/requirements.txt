@@ -13,3 +13,5 @@ torchvision
 uvicorn
 fastapi
 pydantic
+python-multipart
+redis

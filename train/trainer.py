@@ -1,5 +1,6 @@
 import os.path
 import time
+import uuid
 
 import click
 import numpy as np
@@ -7,12 +8,18 @@ import torch
 from tqdm import tqdm
 
 from model import model as model_utils
-from utils import dataset_utils as ds_utils, dataloaders, mobilenetv2_pre, callbacks
-import requests
+from utils import callbacks as cb
+from utils import dataset_utils as ds_utils, dataloaders, mobilenetv2_pre, metrics as mtr
+
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, optimizer, scheduler, model_name,
-        model_dir, callback ,patch=False):
+        model_dir, callbacks, patch=False):
+    def write_callbacks(callbacks, metrics):
+        for callback in callbacks:
+            callback.write(metrics)
+
     torch.cuda.empty_cache()
     train_losses = []
     test_losses = []
@@ -24,7 +31,7 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
     min_loss = np.inf
     decrease = 1
     not_improve = 0
-
+    best_metrics = {}
     model.to(device)
     fit_time = time.time()
     for e in range(epochs):
@@ -50,8 +57,8 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
             output = model(image)
             loss = criterion(output, mask)
             # evaluation metrics
-            iou_score += metrics.mIoU(output, mask, n_classes=n_classes)
-            accuracy += metrics.pixel_accuracy(output, mask)
+            iou_score += mtr.mIoU(output, mask, n_classes=n_classes)
+            accuracy += mtr.pixel_accuracy(output, mask)
             # backward
             loss.backward()
             optimizer.step()  # update weight
@@ -84,8 +91,8 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                     mask = mask_tiles.to(device)
                     output = model(image)
                     # evaluation metrics
-                    val_iou_score += metrics.mIoU(output, mask, n_classes=n_classes)
-                    test_accuracy += metrics.pixel_accuracy(output, mask)
+                    val_iou_score += mtr.mIoU(output, mask, n_classes=n_classes)
+                    test_accuracy += mtr.pixel_accuracy(output, mask)
                     # loss
                     loss = criterion(output, mask)
                     test_loss += loss.item()
@@ -115,7 +122,7 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
             val_accs.append(val_acc)
             train_losses.append(train_loss)
             test_losses.append(val_loss)
-            callback.write(metrics)
+            write_callbacks(callbacks, metrics)
             if min_loss > (test_loss / len(val_loader)):
                 print('Loss Decreasing.. {:.3f} >> {:.3f} '.format(
                     min_loss, (test_loss / len(val_loader))))
@@ -125,13 +132,16 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                     print('saving model...')
                     # model_name = '{}_Deeplabv3Plus-Mobilenet_v2_mIoU-{:.3f}.pt'.format(model_name,
                     #                                                                    val_iou_score / len(val_loader))
+
                     model_name = '{}_Deeplabv3Plus-Mobilenet_v2_mIoU.pt'.format(model_name)
                     model_p = os.path.join(model_dir, model_name)
                     torch.save(
                         model, model_p)
                     metrics['state'] = 'best'
                     metrics['model_path'] = model_p
-                    callback.write(metrics)
+                    print(model_dir, model_p)
+                    write_callbacks(callbacks, metrics)
+                    best_metrics = metrics
 
             if (test_loss / len(val_loader)) > min_loss:
                 not_improve += 1
@@ -161,10 +171,34 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                'lrs': lrs}
 
     print('Total time: {:.2f} m'.format((time.time() - fit_time) / 60))
-    return history
+    return history, best_metrics
 
 
-def trainer(images_dir, masks_dir, model_name, n_classes=19, w_size=1024, h_size=1024, batch_size=5, epochs=100, response_url=None,):
+def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch_size=5, epochs=100, response_url=None,
+            log_url=None, model_name='', task_id=None, data_type='coco', redis_cb=True, file_cb=True,):
+    """
+    TODO: add description
+    :param images_dir:
+    :param masks_dir:
+    :param n_classes:
+    :param w_size:
+    :param h_size:
+    :param batch_size:
+    :param epochs:
+    :param response_url:
+    :param log_url:
+    :param model_name:
+    :param task_id:
+    :param data_type:
+    :return:
+    """
+    # TODO: add data type
+    if data_type == 'coco':
+        pass
+    elif data_type == 'mask_raw':
+        pass
+    elif data_type == 'voc':
+        pass
     ENCODER = 'mobilenet_v2'
     ENCODER_WEIGHTS = 'imagenet'
     ACTIVATION = None
@@ -211,19 +245,45 @@ def trainer(images_dir, masks_dir, model_name, n_classes=19, w_size=1024, h_size
 
     sched = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr, epochs=epochs,
                                                 steps_per_epoch=len(train_dataloader))
+    if not task_id:
+        task_id = str(uuid.uuid4())
 
-    fit(device=DEVICE,
-        n_classes=n_classes,
-        epochs=epochs,
-        model=our_model,
-        train_loader=train_dataloader,
-        val_loader=test_dataloader,
-        criterion=criterion,
-        optimizer=optimizer,
-        scheduler=sched,
-        patch=False,
-        model_name=model_name
-        )
+    task_dir = os.path.join(ROOT_DIR, 'runs', task_id)
+    log_dir = os.path.join(task_dir, 'logs')
+    model_dir = os.path.join(task_dir, 'models')
+    os.makedirs(task_dir, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
+    os.makedirs(model_dir, exist_ok=True)
+    cbs = []
+    if file_cb:
+        file_cb = cb.FileCallback(log_dir)
+        cbs.append(file_cb)
+    if response_url:
+        response_cb = cb.PostCallback(log_url)
+        cbs.append(response_cb)
+
+    if redis_cb:
+        redis_cb = cb.RedisCallback(task_id)
+        cbs.append(redis_cb)
+
+    history = fit(device=DEVICE,
+                  n_classes=n_classes,
+                  epochs=epochs,
+                  model=our_model,
+                  train_loader=train_dataloader,
+                  val_loader=test_dataloader,
+                  criterion=criterion,
+                  optimizer=optimizer,
+                  scheduler=sched,
+                  patch=False,
+                  model_name=model_name,
+                  callbacks=cbs,
+                  model_dir=model_dir)
+
+    if response_url:
+        response_cb = cb.PostCallback(response_url)
+        response_cb.write(history)
+    return history
 
 
 if __name__ == '__main__':
@@ -236,7 +296,12 @@ if __name__ == '__main__':
     @click.option('--h_size', '-h', default=1024, help='Height of image')
     @click.option('--batch_size', '-bs', default=5, help='Batch size')
     @click.option('--epochs', '-e', default=100, help='Number of epochs')
-    def main(images_dir, masks_dir, model_name, n_classes, w_size, h_size, batch_size, epochs):
+    @click.option('--response_url', '-r', default=None, help='URL to send response')
+    @click.option('--log_url', '-l', default=None, help='URL to send logs')
+    @click.option('--task_id', '-t', default=None, help='Task ID')
+    @click.option('--data_type', '-d', default='coco', help='Data type')
+    def main(images_dir, masks_dir, model_name, n_classes, w_size, h_size, batch_size, epochs, response_url, log_url,
+             task_id, data_type):
         trainer(images_dir=images_dir,
                 masks_dir=masks_dir,
                 model_name=model_name,
@@ -244,7 +309,11 @@ if __name__ == '__main__':
                 w_size=w_size,
                 h_size=h_size,
                 batch_size=batch_size,
-                epochs=epochs)
+                epochs=epochs,
+                response_url=response_url,
+                log_url=log_url,
+                task_id=task_id,
+                data_type=data_type)
 
 
     main()
