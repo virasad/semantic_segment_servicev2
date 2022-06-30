@@ -54,7 +54,7 @@ async def predict(image: UploadFile = File(...), return_image: bool = False, ret
     # except Exception as e:
     #     return {"message": str(e)}
 
-@app.post("/set_classes")
+@app.post("/n_classes")
 async def set_classes(n_classes: int):
     detector.set_classes(n_classes)
     return {"message": "Success"}
