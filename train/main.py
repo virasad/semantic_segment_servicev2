@@ -1,9 +1,17 @@
 import os
+from enum import Enum
 
 from fastapi import FastAPI, BackgroundTasks
 
 import trainer as tr
 from utils.callbacks import RedisCallback
+
+
+class DataType(str, Enum):
+    voc = "voc"
+    coco = "coco"
+    mask_raw = "mask_raw"
+
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 app = FastAPI(
@@ -41,7 +49,7 @@ async def train(
         response_url: str = None,
         log_url: str = None,
         task_id: str = None,
-        data_type: str = 'coco',
+        data_type: DataType = DataType.coco,
         redis_cb: bool = True,
         file_cb: bool = False,
 ):

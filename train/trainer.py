@@ -1,4 +1,6 @@
+import os
 import os.path
+import shutil
 import time
 import uuid
 
@@ -112,7 +114,7 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                 'val_miou': val_miou,
                 'train_acc': train_acc,
                 'val_acc': val_acc,
-                'epoch': e,
+                'epoch': e + 1,
                 'total_epochs': epochs,
                 'state': 'train'
             }
@@ -171,11 +173,11 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                'lrs': lrs}
 
     print('Total time: {:.2f} m'.format((time.time() - fit_time) / 60))
-    return history, best_metrics
+    return history, best_metrics, model_p
 
 
 def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch_size=5, epochs=100, response_url=None,
-            log_url=None, model_name='', task_id=None, data_type='coco', redis_cb=True, file_cb=True,):
+            log_url=None, model_name='', task_id=None, data_type='coco', redis_cb=True, file_cb=True, ):
     """
     TODO: add description
     :param images_dir:
@@ -192,13 +194,34 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
     :param data_type:
     :return:
     """
-    # TODO: add data type
+
     if data_type == 'coco':
-        pass
+        from utils import dataset
+
+        if not os.path.exists(images_dir):
+            raise FileExistsError("images path not found")
+        if not os.path.exists(masks_dir):
+            raise FileExistsError("json annotation path not found")
+
+        raw_mask = os.path.join(os.path.dirname(images_dir), 'raw_mask')
+
+        try:
+            os.mkdir(raw_mask)
+        except FileExistsError:
+            shutil.rmtree(raw_mask)
+            os.mkdir(raw_mask)
+
+        dataset.CocoHandler(masks_dir,
+                            images_dir).convert_dataset_to_masks(raw_mask)
+        masks_dir = raw_mask
+
+    # TODO: add mask_raw and voc converter
     elif data_type == 'mask_raw':
         pass
+
     elif data_type == 'voc':
         pass
+
     ENCODER = 'mobilenet_v2'
     ENCODER_WEIGHTS = 'imagenet'
     ACTIVATION = None
@@ -266,23 +289,24 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
         redis_cb = cb.RedisCallback(task_id)
         cbs.append(redis_cb)
 
-    history = fit(device=DEVICE,
-                  n_classes=n_classes,
-                  epochs=epochs,
-                  model=our_model,
-                  train_loader=train_dataloader,
-                  val_loader=test_dataloader,
-                  criterion=criterion,
-                  optimizer=optimizer,
-                  scheduler=sched,
-                  patch=False,
-                  model_name=model_name,
-                  callbacks=cbs,
-                  model_dir=model_dir)
+    history, best_metrics, best_p = fit(device=DEVICE,
+                                        n_classes=n_classes,
+                                        epochs=epochs,
+                                        model=our_model,
+                                        train_loader=train_dataloader,
+                                        val_loader=test_dataloader,
+                                        criterion=criterion,
+                                        optimizer=optimizer,
+                                        scheduler=sched,
+                                        patch=False,
+                                        model_name=model_name,
+                                        callbacks=cbs,
+                                        model_dir=model_dir)
 
     if response_url:
         response_cb = cb.PostCallback(response_url)
-        response_cb.write(history)
+        best_metrics['weights_p'] = best_p
+        response_cb.write(best_metrics)
     return history
 
 
