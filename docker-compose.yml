@@ -34,7 +34,7 @@ services:
     volumes:
       - ./train:/code
       - ./volumes/weights:/weights
-      - ./volumes/dataset2:/dataset2
+      - ./volumes/dataset:/dataset
     environment:
       - RESPONSE_URL=http://web:8000/api/v1/train/done
       - LOGGER_URL=http://127.0.0.1:8000/logger
@@ -46,7 +46,7 @@ services:
       resources:
         reservations:
           devices:
-            - capabilities: [ gpu ]
+            - capabilities: [ gpu]
     networks:
       - segment-network
 
