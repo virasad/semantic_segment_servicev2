@@ -306,6 +306,7 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
     if response_url:
         response_cb = cb.PostCallback(response_url)
         best_metrics['weights_p'] = best_p
+        best_metrics['task_id'] = task_id
         response_cb.write(best_metrics)
     return history
 
