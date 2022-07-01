@@ -1,6 +1,7 @@
 import numpy as np
 
-def label_2_class(img_labels, colors ):
+
+def label_2_class(img_labels, colors):
     """Function that given an image with labels ids and their pixels intrensity mapping, creates a RGB
     representation for visualisation purposes."""
 
@@ -19,7 +20,9 @@ def label_2_class(img_labels, colors ):
     m = np.array(masks)
     return m, classes
 
+
 import cv2
+
 
 def get_segmentation_annotations(segmentation_mask, colors):
     hw = segmentation_mask.shape[:2]
@@ -30,7 +33,7 @@ def get_segmentation_annotations(segmentation_mask, colors):
         if segtype == 0:
             continue
         temp_img = np.zeros(hw)
-        seg_class_mask_over_seg_img = np.where(segmentation_mask==segtype)
+        seg_class_mask_over_seg_img = np.where(segmentation_mask == segtype)
         if np.any(seg_class_mask_over_seg_img):
             temp_img[seg_class_mask_over_seg_img] = 1
             contours, _ = cv2.findContours(temp_img.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
@@ -44,7 +47,7 @@ def get_segmentation_annotations(segmentation_mask, colors):
     return polygons
 
 
-def get_segmentation_dict(segmentation_mask, colors, img_id="0", starting_annotation_indx=0, DEBUG=False):
+def get_segmentation_dict(segmentation_mask, colors, img_id="0", starting_annotation_indx=0, task_id=1, DEBUG=False):
     annotations = []
     for indx, (contour, seg_type) in enumerate(get_segmentation_annotations(segmentation_mask, colors)):
         segmentation = contour.ravel().tolist()
@@ -53,6 +56,7 @@ def get_segmentation_dict(segmentation_mask, colors, img_id="0", starting_annota
             "area": cv2.contourArea(contour),
             "image_id": img_id,
             "category_id": seg_type,
-            "id": starting_annotation_indx + indx
+            "id": starting_annotation_indx + indx,
+            "task_id": task_id
         })
     return annotations

@@ -11,6 +11,7 @@ from preimutils.segmentations.voc.utils import utils as preutils
 from model import model
 from utils import postprocess
 
+
 # matplotlib.use('TkAgg')
 
 
@@ -66,7 +67,8 @@ class InferenceSeg:
         pr_mask = self.best_model.predict(x_tensor)
         return pr_mask.squeeze().cpu()
 
-    def predict_data(self, image_p, return_image=False, return_coco=False, save=False, output_dir=None):
+    def predict_data(self, image_p, return_image=False, return_coco=False, save=False, output_dir=None, image_id=0,
+                     starting_ann_id=0, task_id=0):
         """
         Predict the segmentation of an image using the model.
         :param image_p: cv2 image or path to image
@@ -96,14 +98,14 @@ class InferenceSeg:
             cv2.resize(image, (rgb_label.shape[1], rgb_label.shape[0]))
             overlay = cv2.addWeighted(image, alpha, rgb_label, 1 - alpha, 0, rgb_label)
             _, encoded_img = cv2.imencode('.JPG', overlay)
-            # save_dst = os.path.join(output_dir, 'result_{}.png'.format(datetime.now().strftime("%Y%m%d_%H%M%S")))
-            # encoded_img_b64 = base64.b64encode(encoded_img)
-            # cv2.imwrite(save_dst, overlay)
             return encoded_img
+
         elif return_coco:
             labels = labels.cpu().numpy()
-            res = postprocess.get_segmentation_dict(labels, self.colors)
-            print(res)
+            res = postprocess.get_segmentation_dict(labels, self.colors,
+                                                    img_id=image_id,
+                                                    starting_annotation_indx=starting_ann_id,
+                                                    task_id=task_id)
             return res
 
 
@@ -113,9 +115,7 @@ class InferenceSeg:
             alpha = 0.7
             cv2.resize(image, (rgb_label.shape[1], rgb_label.shape[0]))
             overlay = cv2.addWeighted(image, alpha, rgb_label, 1 - alpha, 0, rgb_label)
-            # _, encoded_img = cv2.imencode('.JPG', overlay)
             save_dst = os.path.join(output_dir, 'result_{}.png'.format(datetime.now().strftime("%Y%m%d_%H%M%S")))
-            # encoded_img_b64 = base64.b64encode(encoded_img)
             cv2.imwrite(save_dst, overlay)
         else:
             labels = labels.cpu().numpy()
@@ -138,7 +138,7 @@ if __name__ == '__main__':
     @click.command()
     @click.option('--images_dir', default='/home/james/Documents/data/images', help='Path to images directory')
     @click.option('--model_path', default='/home/james/Documents/data/best_model.pth', help='Path to model')
-    @click.option('--size', type=(int, int),help='Size of image w h')
+    @click.option('--size', type=(int, int), help='Size of image w h')
     @click.option('--save', default=False, is_flag=True, help='Save output')
     @click.option('--output_dir', default='/home/james/Documents/data/output', help='Path to output directory')
     @click.option('--num_classes', default=19, help='Number of classes')

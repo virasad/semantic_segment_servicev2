@@ -65,12 +65,15 @@ async def train(
         response_url=response_url,
         log_url=log_url,
         task_id=task_id,
-        data_type=data_type)
+        data_type=data_type,
+        file_cb=file_cb,
+        redis_cb=redis_cb,
+        )
 
     return {"message": "Success"}
 
 
-@app.get("/get_status")
+@app.get("/get-status")
 async def get_status(task_id: int):
     # with open(os.path.join(ROOT_DIR, 'runs', str(task_id), 'logs', 'result.json')) as f:
     #     return json.load(f)
