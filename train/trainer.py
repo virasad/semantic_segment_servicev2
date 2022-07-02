@@ -273,7 +273,7 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
 
     task_dir = os.path.join(ROOT_DIR, 'runs', task_id)
     log_dir = os.path.join(task_dir, 'logs')
-    model_dir = os.path.join(task_dir, 'models')
+    model_dir = os.environ.get('WEIGHTS_DIR', os.path.join(task_dir, 'models'))
     os.makedirs(task_dir, exist_ok=True)
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(model_dir, exist_ok=True)
@@ -286,7 +286,7 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
         cbs.append(response_cb)
 
     if redis_cb:
-        redis_cb = cb.RedisCallback(task_id)
+        redis_cb = cb.RedisCallback(task_id, 'redis')
         cbs.append(redis_cb)
 
     history, best_metrics, best_p = fit(device=DEVICE,

@@ -77,5 +77,5 @@ async def train(
 async def get_status(task_id: int):
     # with open(os.path.join(ROOT_DIR, 'runs', str(task_id), 'logs', 'result.json')) as f:
     #     return json.load(f)
-    response = RedisCallback(task_id).get()
+    response = RedisCallback(task_id, 'redis').get()
     return response

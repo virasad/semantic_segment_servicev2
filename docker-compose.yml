@@ -26,7 +26,7 @@ services:
   #
   train:
     # network_mode: host
-    container_name: "semantic-segment-train"
+    container_name: "semantic-segment-train2"
     build: "./train"
     command: "uvicorn main:app --host 0.0.0.0 --port 5554 --reload"
     ports:
@@ -40,6 +40,7 @@ services:
       - LOGGER_URL=http://127.0.0.1:8000/logger
       - PORT=5554
       - IS_LOGGER_ON=False
+      - WEIGHTS_DIR=/weights
     ipc: host
     shm_size: 1024M
     deploy:
@@ -53,8 +54,8 @@ services:
   redis:
     restart: always
     image: redis:latest
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
     volumes:
       - ./volumes/redis-data:/data
     networks:
