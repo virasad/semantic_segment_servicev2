@@ -36,6 +36,7 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
     best_metrics = {}
     model.to(device)
     fit_time = time.time()
+    model_name = '{}_Deeplabv3Plus-Mobilenet_v2_mIoU.pt'.format(model_name)
     for e in range(epochs):
         since = time.time()
         running_loss = 0
@@ -135,7 +136,6 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                     # model_name = '{}_Deeplabv3Plus-Mobilenet_v2_mIoU-{:.3f}.pt'.format(model_name,
                     #                                                                    val_iou_score / len(val_loader))
 
-                    model_name = '{}_Deeplabv3Plus-Mobilenet_v2_mIoU.pt'.format(model_name)
                     model_p = os.path.join(model_dir, model_name)
                     torch.save(
                         model, model_p)
