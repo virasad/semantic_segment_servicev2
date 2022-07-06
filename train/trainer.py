@@ -192,6 +192,8 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
     :param model_name:
     :param task_id:
     :param data_type:
+    :param redis_cb:
+    :param file_cb:
     :return:
     """
 
@@ -217,7 +219,10 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
 
     # TODO: add mask_raw and voc converter
     elif data_type == 'mask_raw':
-        pass
+        if not os.path.exists(images_dir):
+            raise FileExistsError("images path not found")
+        if not os.path.exists(masks_dir):
+            raise FileExistsError("raw masks path not found")
 
     elif data_type == 'voc':
         pass
@@ -235,7 +240,9 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
         num_classes=n_classes,
         activation=ACTIVATION
     )
-
+    our_model.width = w_size
+    our_model.height = h_size
+    our_model.n_classes = n_classes
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(
         our_model.parameters(), lr=max_lr, weight_decay=weight_decay)
@@ -325,8 +332,10 @@ if __name__ == '__main__':
     @click.option('--log_url', '-l', default=None, help='URL to send logs')
     @click.option('--task_id', '-t', default=None, help='Task ID')
     @click.option('--data_type', '-d', default='coco', help='Data type')
+    @click.option('--redis_cb', '-rc', default=False, help='Use redis callback')
+    @click.option('--file_cb', '-fc', default=False, help='Use file callback')
     def main(images_dir, masks_dir, model_name, n_classes, w_size, h_size, batch_size, epochs, response_url, log_url,
-             task_id, data_type):
+             task_id, data_type,  redis_cb=True, file_cb=True,):
         trainer(images_dir=images_dir,
                 masks_dir=masks_dir,
                 model_name=model_name,
@@ -338,7 +347,9 @@ if __name__ == '__main__':
                 response_url=response_url,
                 log_url=log_url,
                 task_id=task_id,
-                data_type=data_type)
+                data_type=data_type,
+                redis_cb=redis_cb,
+                file_cb=file_cb)
 
 
     main()
