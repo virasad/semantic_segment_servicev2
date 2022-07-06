@@ -65,7 +65,7 @@ async def set_classes(n_classes: int):
 
 @app.post("/set-size")
 async def set_size(weight: int, height: int):
-    detector.set_size(weight, height)
+    detector.set_size(w=weight, h=height)
     return {"message": "Success"}
 
 
