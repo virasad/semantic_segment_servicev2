@@ -39,7 +39,7 @@ def get_preprocessing_predict(preprocessing_fn, h, w):
 
 # from flash.image
 class InferenceSeg:
-    def __init__(self, encoder, encoder_weights, h=1024, w=1024, model_path=None, num_classes=100):
+    def __init__(self, encoder, encoder_weights, model_path=None):
         self.encoder = encoder
         self.encoder_weights = encoder_weights
         self.device = torch.device(
@@ -47,19 +47,21 @@ class InferenceSeg:
         print('Using Device: ' + str(self.device))
         self.model_path = model_path
         self.preprocessing_fn = model.prep(encoder, encoder_weights)
-        self.preprocessing = get_preprocessing_predict(self.preprocessing_fn, h, w)
-        self.colors = self.generate_random_colors(num_classes)
+        self.weight, self.height = 0, 0
+        if model_path is not None:
+            self.set_model(model_path)
 
     def set_model(self, model_path):
         self.best_model = torch.load(model_path, map_location=self.device)
         self.best_model.to(self.device)
         self.best_model.eval()
-
-    def set_classes(self, n_classes):
-        self.colors = self.generate_random_colors(n_classes)
-
-    def set_size(self, h, w):
-        self.preprocessing = get_preprocessing_predict(self.preprocessing_fn, h, w)
+        self.weight, self.height = self.best_model.width, self.best_model.height
+        self.preprocessing = get_preprocessing_predict(self.preprocessing_fn, h=self.height, w=self.weight)
+        self.n_classes = self.best_model.n_classes
+        self.colors = self.generate_random_colors(self.n_classes)
+        print('Model loaded from {}'.format(model_path))
+        print('Model size w {} h {}'.format(self.best_model.width, self.best_model.height))
+        print('Model has {} classes'.format(self.n_classes))
 
     def predict(self, image):
         x_tensor = torch.from_numpy(image['image']).to(
@@ -89,13 +91,15 @@ class InferenceSeg:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image_prep = self.preprocessing(image=image)
         mask = self.predict(image_prep)
+        print('Mask shape: {}'.format(mask.shape))
         labels = torch.argmax(mask, dim=-3)  # HxW
 
         if return_image:
             labels = labels.cpu().numpy()
             rgb_label = preutils.decode_segmap(labels, self.colors, False)
             alpha = 0.7
-            image = cv2.resize(image, (rgb_label.shape[1], rgb_label.shape[0]))
+            # image = cv2.resize(image, (rgb_label.shape[1], rgb_label.shape[0]))
+            image = cv2.resize(image, (self.weight, self.height))
             overlay = cv2.addWeighted(image, alpha, rgb_label, 1 - alpha, 0, rgb_label)
             _, encoded_img = cv2.imencode('.JPG', overlay)
             return encoded_img
@@ -108,12 +112,11 @@ class InferenceSeg:
                                                     task_id=task_id)
             return res
 
-
         elif save:
             labels = labels.cpu().numpy()
             rgb_label = preutils.decode_segmap(labels, self.colors, False)
             alpha = 0.7
-            cv2.resize(image, (rgb_label.shape[1], rgb_label.shape[0]))
+            image = cv2.resize(image, (self.weight, self.height))
             overlay = cv2.addWeighted(image, alpha, rgb_label, 1 - alpha, 0, rgb_label)
             save_dst = os.path.join(output_dir, 'result_{}.png'.format(datetime.now().strftime("%Y%m%d_%H%M%S")))
             cv2.imwrite(save_dst, overlay)
@@ -138,12 +141,12 @@ if __name__ == '__main__':
     @click.command()
     @click.option('--images_dir', default='/home/james/Documents/data/images', help='Path to images directory')
     @click.option('--model_path', default='/home/james/Documents/data/best_model.pth', help='Path to model')
-    @click.option('--size', type=(int, int), help='Size of image w h')
+    # @click.option('--size', type=(int, int), help='Size of image w h')
     @click.option('--save', default=False, is_flag=True, help='Save output')
     @click.option('--output_dir', default='/home/james/Documents/data/output', help='Path to output directory')
-    @click.option('--num_classes', default=19, help='Number of classes')
-    def main(images_dir, model_path, size, save, output_dir, num_classes):
-        inference = InferenceSeg('mobilenet_v2', 'imagenet', size[0], size[1], model_path, num_classes)
+    # @click.option('--num_classes', default=19, help='Number of classes')
+    def main(images_dir, model_path, save, output_dir):
+        inference = InferenceSeg('mobilenet_v2', 'imagenet', model_path)
         inference.set_model(model_path)
         for image_path in glob.glob(os.path.join(images_dir, '*')):
             inference.predict_data(image_path, save=save, output_dir=output_dir)

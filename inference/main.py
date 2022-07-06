@@ -9,8 +9,6 @@ from starlette.responses import StreamingResponse
 
 from predict import InferenceSeg
 
-# import imantics
-
 
 app = FastAPI(
     title="Segmentation Model",
@@ -52,21 +50,8 @@ async def predict(image: UploadFile = File(...), return_image: bool = False, ret
             return {"results": response}
         return {"message": "Success"}
 
-
     except Exception as e:
         return {"message": str(e)}
-
-
-@app.post("/n-classes")
-async def set_classes(n_classes: int):
-    detector.set_classes(n_classes)
-    return {"message": "Success"}
-
-
-@app.post("/set-size")
-async def set_size(weight: int, height: int):
-    detector.set_size(w=weight, h=height)
-    return {"message": "Success"}
 
 
 @app.post("/set-model")
