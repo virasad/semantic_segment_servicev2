@@ -95,7 +95,7 @@ class InferenceSeg:
             labels = labels.cpu().numpy()
             rgb_label = preutils.decode_segmap(labels, self.colors, False)
             alpha = 0.7
-            cv2.resize(image, (rgb_label.shape[1], rgb_label.shape[0]))
+            image = cv2.resize(image, (rgb_label.shape[1], rgb_label.shape[0]))
             overlay = cv2.addWeighted(image, alpha, rgb_label, 1 - alpha, 0, rgb_label)
             _, encoded_img = cv2.imencode('.JPG', overlay)
             return encoded_img
