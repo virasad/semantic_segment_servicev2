@@ -196,7 +196,7 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
     :param file_cb:
     :return:
     """
-
+    n_classes = n_classes + 1
     if data_type == 'coco':
         from utils import dataset
 
@@ -288,7 +288,8 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
     if file_cb:
         file_cb = cb.FileCallback(log_dir)
         cbs.append(file_cb)
-    if response_url:
+
+    if log_url:
         response_cb = cb.PostCallback(log_url)
         cbs.append(response_cb)
 
