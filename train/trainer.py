@@ -117,7 +117,8 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                 'val_acc': val_acc,
                 'epoch': e + 1,
                 'total_epochs': epochs,
-                'state': 'train'
+                'state': 'train',
+                'is_finished': False
             }
             val_ious.append(val_miou)
             train_ious.append(train_miou)
@@ -171,7 +172,8 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                'train_acc': train_accs,
                'val_acc': val_accs,
                'lrs': lrs}
-
+    best_metrics['is_finished'] = True
+    write_callbacks(callbacks, best_metrics)
     print('Total time: {:.2f} m'.format((time.time() - fit_time) / 60))
     return history, best_metrics, model_p
 
