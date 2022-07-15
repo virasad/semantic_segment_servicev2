@@ -4,7 +4,7 @@ services:
     # network_mode: host
     container_name: "semantic-segment-inference2"
     build: "./inference"
-    command: "uvicorn main:app --host 0.0.0.0 --port 5553 --reload"
+    command: "uvicorn main:app --host 0.0.0.0 --port 5553"
     ports:
       - "5553:5553"
     volumes:
@@ -28,7 +28,7 @@ services:
     # network_mode: host
     container_name: "semantic-segment-train2"
     build: "./train"
-    command: "uvicorn main:app --host 0.0.0.0 --port 5554 --reload"
+    command: "uvicorn main:app --host 0.0.0.0 --port 5554"
     ports:
       - "5554:5554"
     volumes:
