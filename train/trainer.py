@@ -126,7 +126,6 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
             val_accs.append(val_acc)
             train_losses.append(train_loss)
             test_losses.append(val_loss)
-            write_callbacks(callbacks, metrics)
             if min_loss > (test_loss / len(val_loader)):
                 print('Loss Decreasing.. {:.3f} >> {:.3f} '.format(
                     min_loss, (test_loss / len(val_loader))))
@@ -143,7 +142,7 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                     metrics['state'] = 'best'
                     metrics['model_path'] = model_p
                     print(model_dir, model_p)
-                    write_callbacks(callbacks, metrics)
+                    # write_callbacks(callbacks, metrics)
                     best_metrics = metrics
 
             if (test_loss / len(val_loader)) > min_loss:
@@ -164,6 +163,8 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                   "Train Acc:{:.3f}..".format(accuracy / len(train_loader)),
                   "Val Acc:{:.3f}..".format(test_accuracy / len(val_loader)),
                   "Time: {:.2f}m".format((time.time() - since) / 60))
+        print('writing callbacks for epoch {}'.format(e + 1))
+        write_callbacks(callbacks, metrics)
 
     history = {'train_loss': train_losses,
                'val_loss': test_losses,
@@ -173,9 +174,12 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                'val_acc': val_accs,
                'lrs': lrs}
     best_metrics['is_finished'] = True
+    print('saving history...')
+    print(best_metrics)
+    # time.sleep(1)
     write_callbacks(callbacks, best_metrics)
     print('Total time: {:.2f} m'.format((time.time() - fit_time) / 60))
-    return history, best_metrics, model_p
+    return history, best_metrics
 
 
 def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch_size=5, epochs=100, response_url=None,
@@ -299,23 +303,21 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
         redis_cb = cb.RedisCallback(task_id, 'redis')
         cbs.append(redis_cb)
 
-    history, best_metrics, best_p = fit(device=DEVICE,
-                                        n_classes=n_classes,
-                                        epochs=epochs,
-                                        model=our_model,
-                                        train_loader=train_dataloader,
-                                        val_loader=test_dataloader,
-                                        criterion=criterion,
-                                        optimizer=optimizer,
-                                        scheduler=sched,
-                                        patch=False,
-                                        model_name=model_name,
-                                        callbacks=cbs,
-                                        model_dir=model_dir)
-
+    history, best_metrics = fit(device=DEVICE,
+                                n_classes=n_classes,
+                                epochs=epochs,
+                                model=our_model,
+                                train_loader=train_dataloader,
+                                val_loader=test_dataloader,
+                                criterion=criterion,
+                                optimizer=optimizer,
+                                scheduler=sched,
+                                patch=False,
+                                model_name=model_name,
+                                callbacks=cbs,
+                                model_dir=model_dir)
     if response_url:
         response_cb = cb.PostCallback(response_url)
-        best_metrics['weights_p'] = best_p
         best_metrics['task_id'] = task_id
         response_cb.write(best_metrics)
     return history
@@ -338,7 +340,7 @@ if __name__ == '__main__':
     @click.option('--redis_cb', '-rc', default=False, help='Use redis callback')
     @click.option('--file_cb', '-fc', default=False, help='Use file callback')
     def main(images_dir, masks_dir, model_name, n_classes, w_size, h_size, batch_size, epochs, response_url, log_url,
-             task_id, data_type,  redis_cb=True, file_cb=True,):
+             task_id, data_type, redis_cb=True, file_cb=True, ):
         trainer(images_dir=images_dir,
                 masks_dir=masks_dir,
                 model_name=model_name,
