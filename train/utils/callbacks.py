@@ -33,7 +33,7 @@ class PostCallback(BaseCallback):
 
 
 class RedisCallback(BaseCallback):
-    def __init__(self, task_id, host='localhost', port=6379, db=0):
+    def __init__(self, task_id, host='localhost', port=6379, db=1):
         super().__init__()
         self.rd = redis.Redis(host=host, port=port, db=db)
         self.task_id = task_id
@@ -42,4 +42,7 @@ class RedisCallback(BaseCallback):
         self.rd.set(self.task_id, json.dumps(metrics))
 
     def get(self):
-        return json.loads(self.rd.get(self.task_id))
+        try:
+            return json.loads(self.rd.get(self.task_id))
+        except:
+            return {'status': 'error', 'message': 'No result found'}
