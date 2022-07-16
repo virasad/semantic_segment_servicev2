@@ -53,22 +53,22 @@ async def train(
         redis_cb: bool = True,
         file_cb: bool = False,
 ):
-    background_tasks.add_task(
-        tr.trainer, images_dir=images_dir,
-        masks_dir=masks_dir,
-        model_name=model_name,
-        n_classes=n_classes,
-        w_size=w_size,
-        h_size=h_size,
-        batch_size=batch_size,
-        epochs=epochs,
-        response_url=response_url,
-        log_url=log_url,
-        task_id=task_id,
-        data_type=data_type,
-        file_cb=file_cb,
-        redis_cb=redis_cb,
-        )
+    # background_tasks.add_task(
+    tr.trainer(images_dir=images_dir,
+               masks_dir=masks_dir,
+               model_name=model_name,
+               n_classes=n_classes,
+               w_size=w_size,
+               h_size=h_size,
+               batch_size=batch_size,
+               epochs=epochs,
+               response_url=response_url,
+               log_url=log_url,
+               task_id=task_id,
+               data_type=data_type,
+               file_cb=file_cb,
+               redis_cb=redis_cb,
+               )
 
     return {"message": "Success"}
 
