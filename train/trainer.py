@@ -12,6 +12,7 @@ from tqdm import tqdm
 from model import model as model_utils
 from utils import callbacks as cb
 from utils import dataset_utils as ds_utils, dataloaders, mobilenetv2_pre, metrics as mtr
+import segmentation_models_pytorch as smp
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -60,8 +61,8 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
             output = model(image)
             loss = criterion(output, mask)
             # evaluation metrics
-            iou_score += mtr.mIoU(output, mask, n_classes=n_classes)
-            accuracy += mtr.pixel_accuracy(output, mask)
+            iou_score += mtr.mIoU(output, mask)
+            accuracy += mtr.pixel_accuracy(output, mask, n_classes)
             # backward
             loss.backward()
             optimizer.step()  # update weight
@@ -94,8 +95,8 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                     mask = mask_tiles.to(device)
                     output = model(image)
                     # evaluation metrics
-                    val_iou_score += mtr.mIoU(output, mask, n_classes=n_classes)
-                    test_accuracy += mtr.pixel_accuracy(output, mask)
+                    val_iou_score += mtr.mIoU(output, mask)
+                    test_accuracy += mtr.pixel_accuracy(output, mask, n_classes)
                     # loss
                     loss = criterion(output, mask)
                     test_loss += loss.item()
@@ -202,7 +203,9 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
     :param file_cb:
     :return:
     """
-    n_classes = n_classes + 1
+    if n_classes != 1:
+        n_classes = n_classes + 1
+
     if data_type == 'coco':
         from utils import dataset
 
@@ -249,7 +252,10 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
     our_model.width = w_size
     our_model.height = h_size
     our_model.n_classes = n_classes
-    criterion = torch.nn.CrossEntropyLoss()
+    if n_classes == 1:
+        criterion = smp.losses.dice.DiceLoss(smp.losses.BINARY_MODE)
+    else:
+        criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(
         our_model.parameters(), lr=max_lr, weight_decay=weight_decay)
 
