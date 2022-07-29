@@ -67,6 +67,8 @@ class InferenceSeg:
         x_tensor = torch.from_numpy(image['image']).to(
             self.device).unsqueeze(0)
         pr_mask = self.best_model.predict(x_tensor)
+        if self.n_classes == 1:
+            return pr_mask.sigmoid().squeeze().cpu()
         return pr_mask.squeeze().cpu()
 
     def predict_data(self, image_p, return_image=False, return_coco=False, save=False, output_dir=None, image_id=0,
@@ -92,7 +94,15 @@ class InferenceSeg:
         image_prep = self.preprocessing(image=image)
         mask = self.predict(image_prep)
         print('Mask shape: {}'.format(mask.shape))
-        labels = torch.argmax(mask, dim=-3)  # HxW
+        if self.n_classes == 1:
+            # where the mask is 0.5 or higher, set it to 1
+            mask[mask >= 0.4] = 1
+            # where the mask is 0.5 or lower, set it to 0
+            mask[mask < 0.4] = 0
+            # print(mask)
+            labels = mask
+        else:
+            labels = torch.argmax(mask, dim=-3)  # HxW
 
         if return_image:
             labels = labels.cpu().numpy()
@@ -118,7 +128,7 @@ class InferenceSeg:
             alpha = 0.7
             image = cv2.resize(image, (self.weight, self.height))
             overlay = cv2.addWeighted(image, alpha, rgb_label, 1 - alpha, 0, rgb_label)
-            save_dst = os.path.join(output_dir, 'result_{}.png'.format(datetime.now().strftime("%Y%m%d_%H%M%S")))
+            save_dst = os.path.join(output_dir, 'result_{}.png'.format(datetime.now().strftime("%Y%m%d_%H%M%S%f")))
             cv2.imwrite(save_dst, overlay)
         else:
             labels = labels.cpu().numpy()
