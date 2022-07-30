@@ -18,7 +18,7 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, optimizer, scheduler, model_name,
-        model_dir, callbacks, patch=False):
+        model_dir, callbacks, task_id, patch=False):
     def write_callbacks(callbacks, metrics):
         for callback in callbacks:
             callback.write(metrics)
@@ -119,7 +119,8 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                 'epoch': e + 1,
                 'total_epochs': epochs,
                 'state': 'train',
-                'is_finished': False
+                'is_finished': False,
+                'task_id': task_id,
             }
             val_ious.append(val_miou)
             train_ious.append(train_miou)
@@ -134,8 +135,6 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                 decrease += 1
                 if decrease % 3 == 0:
                     print('saving model...')
-                    # model_name = '{}_Deeplabv3Plus-Mobilenet_v2_mIoU-{:.3f}.pt'.format(model_name,
-                    #                                                                    val_iou_score / len(val_loader))
 
                     model_p = os.path.join(model_dir, model_name)
                     torch.save(
@@ -173,6 +172,7 @@ def fit(device, n_classes, epochs, model, train_loader, val_loader, criterion, o
                'val_miou': val_ious,
                'train_acc': train_accs,
                'val_acc': val_accs,
+               'task_id': task_id,
                'lrs': lrs}
     best_metrics['is_finished'] = True
     print('saving history...')
@@ -321,7 +321,8 @@ def trainer(images_dir, masks_dir, n_classes=19, w_size=1024, h_size=1024, batch
                                 patch=False,
                                 model_name=model_name,
                                 callbacks=cbs,
-                                model_dir=model_dir)
+                                model_dir=model_dir,
+                                task_id=task_id)
     if response_url:
         response_cb = cb.PostCallback(response_url)
         best_metrics['task_id'] = task_id
