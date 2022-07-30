@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 
 def label_2_class(img_labels, colors):
@@ -21,15 +22,14 @@ def label_2_class(img_labels, colors):
     return m, classes
 
 
-import cv2
-
-
-def get_segmentation_annotations(segmentation_mask, colors):
+def get_segmentation_annotations(segmentation_mask, n_classes):
     hw = segmentation_mask.shape[:2]
     segmentation_mask = segmentation_mask.reshape(hw)
     polygons = []
+    if n_classes == 1:
+        n_classes = 2
 
-    for segtype in range(len(colors)):
+    for segtype in range(n_classes):
         if segtype == 0:
             continue
         temp_img = np.zeros(hw)
@@ -37,7 +37,6 @@ def get_segmentation_annotations(segmentation_mask, colors):
         if np.any(seg_class_mask_over_seg_img):
             temp_img[seg_class_mask_over_seg_img] = 1
             contours, _ = cv2.findContours(temp_img.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-            print('contours', contours)
             if len(contours) < 1:
                 continue
             for contour in contours:
@@ -47,9 +46,15 @@ def get_segmentation_annotations(segmentation_mask, colors):
     return polygons
 
 
-def get_segmentation_dict(segmentation_mask, colors, img_id="0", starting_annotation_indx=0, task_id=1, DEBUG=False):
+def get_segmentation_dict(w_ratio, h_ratio, segmentation_mask, n_classes, img_id="0", starting_annotation_indx=0,
+                          task_id=1, DEBUG=False):
     annotations = []
-    for indx, (contour, seg_type) in enumerate(get_segmentation_annotations(segmentation_mask, colors)):
+    for indx, (contour, seg_type) in enumerate(get_segmentation_annotations(segmentation_mask, n_classes)):
+        # real coordinates of the contour
+        contour = np.array(contour).astype(np.int32)
+        contour = contour.reshape((-1, 1, 2))
+        contour = contour * [w_ratio, h_ratio]
+        contour = contour.astype(np.int32)
         segmentation = contour.ravel().tolist()
         annotations.append({
             "segmentation": segmentation,
