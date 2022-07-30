@@ -96,9 +96,9 @@ class InferenceSeg:
         print('Mask shape: {}'.format(mask.shape))
         if self.n_classes == 1:
             # where the mask is 0.5 or higher, set it to 1
-            mask[mask >= 0.4] = 1
+            mask[mask >= 0.5] = 1
             # where the mask is 0.5 or lower, set it to 0
-            mask[mask < 0.4] = 0
+            mask[mask < 0.5] = 0
             # print(mask)
             labels = mask
         else:
