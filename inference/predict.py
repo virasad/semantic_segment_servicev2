@@ -89,11 +89,12 @@ class InferenceSeg:
             image = image_p
         else:
             raise ValueError('Image must be a path or numpy array')
-
+        w, h = image.shape[1], image.shape[0]
+        # resize ratio
+        w_ratio, h_ratio = w / self.weight, h / self.height
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image_prep = self.preprocessing(image=image)
         mask = self.predict(image_prep)
-        print('Mask shape: {}'.format(mask.shape))
         if self.n_classes == 1:
             # where the mask is 0.5 or higher, set it to 1
             mask[mask >= 0.5] = 1
@@ -116,10 +117,13 @@ class InferenceSeg:
 
         elif return_coco:
             labels = labels.cpu().numpy()
-            res = postprocess.get_segmentation_dict(labels, self.colors,
+            res = postprocess.get_segmentation_dict(segmentation_mask=labels,
+                                                    n_classes=self.n_classes,
                                                     img_id=image_id,
                                                     starting_annotation_indx=starting_ann_id,
-                                                    task_id=task_id)
+                                                    task_id=task_id,
+                                                    w_ratio=w_ratio,
+                                                    h_ratio=h_ratio)
             return res
 
         elif save:
@@ -136,6 +140,8 @@ class InferenceSeg:
 
     @staticmethod
     def generate_random_colors(n):
+        if n == 1:
+            return [(255, 0, 0)]
         colors = []
         colors.append((0, 0, 0))
         for i in range(1, n):
@@ -151,15 +157,14 @@ if __name__ == '__main__':
     @click.command()
     @click.option('--images_dir', default='/home/james/Documents/data/images', help='Path to images directory')
     @click.option('--model_path', default='/home/james/Documents/data/best_model.pth', help='Path to model')
-    # @click.option('--size', type=(int, int), help='Size of image w h')
     @click.option('--save', default=False, is_flag=True, help='Save output')
     @click.option('--output_dir', default='/home/james/Documents/data/output', help='Path to output directory')
-    # @click.option('--num_classes', default=19, help='Number of classes')
     def main(images_dir, model_path, save, output_dir):
         inference = InferenceSeg('mobilenet_v2', 'imagenet', model_path)
         inference.set_model(model_path)
         for image_path in glob.glob(os.path.join(images_dir, '*')):
-            inference.predict_data(image_path, save=save, output_dir=output_dir)
-
+            a = inference.predict_data(image_path, save=save, output_dir=output_dir, return_coco=True)
+            if len(a):
+                print(a)
 
     main()
